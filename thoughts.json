@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "message": "I'm happy because I'm learning backend!",
+    "hearts": 5,
+    "createdAt": "2025-06-05T09:00:00.000Z"
+  },
+  {
+    "id": 2,
+    "message": "Coffee makes everything better.",
+    "hearts": 2,
+    "createdAt": "2025-06-05T10:00:00.000Z"
+  }
+]
