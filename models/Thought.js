@@ -7,7 +7,7 @@ export const Thought = mongoose.model('Thought', {
     minlength: 5,
     maxlength: 140,
   },
-  heats: {
+  hearts: {
     type: Number,
     default: 0
   },

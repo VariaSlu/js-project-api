@@ -23,7 +23,7 @@ mongoose
   .connect(process.env.MONGO_URL)
   .then(() => {
     console.log('Connected to MongoDB!');
-    seed(); // optional: seed data only if DB is empty
+    seed();    // optional
   })
   .catch((err) => {
     console.error('Mongo error', err);
@@ -39,6 +39,7 @@ const seed = async () => {
     console.log('Seeded one thought');
   }
 };
+
 
 //basee route
 app.get("/", (req, res) => {
@@ -60,6 +61,43 @@ app.get('/thoughts', async (req, res) => {
   }
 });
 
+app.post('/thoughts/:id/like', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    console.log('ID received:', id); //for debugginng
+
+    const updatedThought = await Thought.findByIdAndUpdate(
+      id,
+      { $inc: { hearts: 1 } },
+      { new: true } //return the updaated document
+    );
+
+    if (!updatedThought) {
+      return res.status(404).json({ error: 'Thought not found' });
+    }
+
+    res.json(updatedThought);
+
+  } catch (err) {
+    res.status(400).json({
+      error: 'Invalid ID or request',
+      details: err.message //show whats wrong
+    });
+  }
+
+});
+
+app.post('/thoughts', async (req, res) => {
+  const { message } = req.body;
+
+  try {
+    const newThought = await new Thought({ message }).save();
+    res.status(201).json(newThought);
+  } catch (err) {
+    res.status(400).json({ error: 'Could not save thought', details: err.message });
+  }
+});
 
 // Start server
 app.listen(port, () => {
