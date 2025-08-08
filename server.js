@@ -3,7 +3,7 @@ import express from "express"
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { Thought } from "./models/Thought.js"
-import expressListEndpoints from "express-list-endpoints";
+import ListEndpoints from "express-list-endpoints";
 
 dotenv.config();
 
@@ -35,6 +35,7 @@ const seed = async () => {
   if (existing.length === 0) {
     await new Thought({
       message: 'This is my very first seeded thought!',
+      hearts: 0
     }).save();
     console.log('Seeded one thought');
   }
@@ -58,6 +59,41 @@ app.get('/thoughts', async (req, res) => {
     res.json(thoughts);
   } catch (err) {
     res.status(500).json({ error: 'Could not fetch thoughts' });
+  }
+});
+
+app.get('/thoughts/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const thought = await Thought.findById(id);
+
+    if (!thought) {
+      return res.status(404).json({ error: 'Thought not found' });
+    }
+
+    res.json(thought);
+  } catch (err) {
+    res.status(400).json({
+      error: 'Invalid ID',
+      details: err.message,
+    });
+  }
+});
+
+app.delete('/thoughts/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const deletedThought = await Thought.findByIdAndDelete(id);
+
+    if (!deletedThought) {
+      return res.status(404).json({ error: 'Thought not found' });
+    }
+
+    res.status(200).json({ success: true, message: 'Thought deleted' });
+  } catch (err) {
+    res.status(400).json({ error: 'Invalid ID', details: err.message });
   }
 });
 
