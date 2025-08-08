@@ -131,9 +131,21 @@ app.post('/thoughts', async (req, res) => {
     const newThought = await new Thought({ message }).save();
     res.status(201).json(newThought);
   } catch (err) {
-    res.status(400).json({ error: 'Could not save thought', details: err.message });
+    // Check for validation error
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: err.errors.message?.message || 'Invalid input'
+      });
+    }
+
+    res.status(500).json({
+      error: 'Could not save thought',
+      details: err.message,
+    });
   }
 });
+
 
 // Start server
 app.listen(port, () => {
