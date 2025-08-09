@@ -4,6 +4,8 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { Thought } from "./models/Thought.js"
 import ListEndpoints from "express-list-endpoints";
+import { User } from './models/User.js';
+import bcrypt from 'bcryptjs';
 
 dotenv.config();
 
@@ -143,6 +145,50 @@ app.post('/thoughts', async (req, res) => {
       error: 'Could not save thought',
       details: err.message,
     });
+  }
+});
+
+app.post('/signup', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const newUser = await new User({ email, password }).save();
+    res.status(201).json({
+      email: newUser.email,
+      _id: newUser._id
+    });
+  } catch (err) {
+    res.status(400).json({ error: 'Could not create user', details: err.message });
+  }
+});
+
+// LOGIN ROUTE
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // 1. Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // 2. Compare passwords
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // 3. Login successful
+    res.json({
+      success: true,
+      message: 'Login successful',
+      userId: user._id,
+      email: user.email
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: 'Server error', details: err.message });
   }
 });
 
