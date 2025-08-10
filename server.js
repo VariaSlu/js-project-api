@@ -128,9 +128,28 @@ app.post('/thoughts/:id/like', async (req, res) => {
 
 app.post('/thoughts', async (req, res) => {
   const { message } = req.body;
+  const userId = req.header('x-user-id');
+  console.log('Headers received:', req.headers); //fo test
 
   try {
-    const newThought = await new Thought({ message }).save();
+    if (!userId) {
+      return res.status(401).json({ error: 'Missing X-User-Id header' })
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid user' });
+    }
+
+
+    const newThought = await new Thought({
+      message,
+      ceratedBy: user._id
+    }).save();
+
+    // (Optional) populate the user info
+    // await newThought.populate('createdBy', 'email username');
+
     res.status(201).json(newThought);
   } catch (err) {
     // Check for validation error

@@ -14,5 +14,10 @@ export const Thought = mongoose.model('Thought', {
   createdAt: {
     type: Date,
     default: () => new Date(),
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false
   }
 })
