@@ -18,6 +18,6 @@ export const Thought = mongoose.model('Thought', {
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: false
+    required: true
   }
 })

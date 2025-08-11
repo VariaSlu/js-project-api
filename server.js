@@ -128,7 +128,7 @@ app.post('/thoughts/:id/like', async (req, res) => {
 
 app.post('/thoughts', async (req, res) => {
   const { message } = req.body;
-  const userId = req.header('x-user-id');
+  const userId = req.header('x-user-id');  // temporary auth
   console.log('Headers received:', req.headers); //fo test
 
   try {
@@ -144,7 +144,7 @@ app.post('/thoughts', async (req, res) => {
 
     const newThought = await new Thought({
       message,
-      ceratedBy: user._id
+      createdBy: user._id,
     }).save();
 
     // (Optional) populate the user info
@@ -156,13 +156,13 @@ app.post('/thoughts', async (req, res) => {
     if (err.name === 'ValidationError') {
       return res.status(400).json({
         error: 'Validation failed',
-        details: err.errors.message?.message || 'Invalid input'
+        details: err.message
       });
     }
 
     res.status(500).json({
       error: 'Could not save thought',
-      details: err.message,
+      details: err.message
     });
   }
 });
