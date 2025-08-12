@@ -6,6 +6,8 @@ import { Thought } from "./models/Thought.js"
 import ListEndpoints from "express-list-endpoints";
 import { User } from './models/User.js';
 import bcrypt from 'bcryptjs';
+import listEndpoints from 'express-list-endpoints';
+
 
 dotenv.config();
 
@@ -45,19 +47,30 @@ const seed = async () => {
 
 
 //basee route
-app.get("/", (req, res) => {
-  res.json({
-    message: "Welcome to Happy Thougts API",
-    endpoints: listEndpoints(app),
-  })
-})
+app.get('/', (req, res) => {
+  try {
+    const endpoints = listEndpoints(app).map(e => ({
+      path: e.path,
+      methods: e.methods.sort(),
+    }));
+    res.json({
+      name: 'Happy Thoughts API',
+      version: '1.0.0',
+      endpoints
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to list endpoints', details: err.message });
+  }
+});
 
 // Get all thoughts
 app.get('/thoughts', async (req, res) => {
   try {
     const thoughts = await Thought.find()
       .sort({ createdAt: -1 })
-      .limit(20);
+      .limit(20)
+      .populate('createdBy', 'email usename');
+
     res.json(thoughts);
   } catch (err) {
     res.status(500).json({ error: 'Could not fetch thoughts' });
