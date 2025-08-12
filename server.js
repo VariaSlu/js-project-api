@@ -3,10 +3,9 @@ import express from "express"
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { Thought } from "./models/Thought.js"
-import ListEndpoints from "express-list-endpoints";
 import { User } from './models/User.js';
-import bcrypt from 'bcryptjs';
 import listEndpoints from 'express-list-endpoints';
+import jwt from 'jsonwebtoken';
 
 
 dotenv.config();
@@ -27,7 +26,7 @@ mongoose
   .connect(process.env.MONGO_URL)
   .then(() => {
     console.log('Connected to MongoDB!');
-    seed();    // optional
+    //seed();    // optional
   })
   .catch((err) => {
     console.error('Mongo error', err);
@@ -42,6 +41,26 @@ const seed = async () => {
       hearts: 0
     }).save();
     console.log('Seeded one thought');
+  }
+};
+
+const auth = (req, res, next) => {
+  const raw = req.header('Authorization') || '';
+  const token = raw.startsWith('Bearer ') ? raw.slice(7) : null;
+
+  console.log('[AUTH] raw header =', JSON.stringify(raw));
+  console.log('[AUTH] token len =', token ? token.length : 0);
+  console.log('[AUTH] token parts =', token ? token.split('.').length : 0);
+
+  if (!token) return res.status(401).json({ error: 'Missing token' });
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    req.userId = payload.userId;
+    return next();
+  } catch (err) {
+    console.error('JWT verify error:', err.message);
+    return res.status(401).json({ error: 'Invalid or expired token', details: err.message });
   }
 };
 
@@ -69,7 +88,7 @@ app.get('/thoughts', async (req, res) => {
     const thoughts = await Thought.find()
       .sort({ createdAt: -1 })
       .limit(20)
-      .populate('createdBy', 'email usename');
+      .populate('createdBy', 'email');
 
     res.json(thoughts);
   } catch (err) {
@@ -96,21 +115,6 @@ app.get('/thoughts/:id', async (req, res) => {
   }
 });
 
-app.delete('/thoughts/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const deletedThought = await Thought.findByIdAndDelete(id);
-
-    if (!deletedThought) {
-      return res.status(404).json({ error: 'Thought not found' });
-    }
-
-    res.status(200).json({ success: true, message: 'Thought deleted' });
-  } catch (err) {
-    res.status(400).json({ error: 'Invalid ID', details: err.message });
-  }
-});
 
 app.post('/thoughts/:id/like', async (req, res) => {
   const { id } = req.params;
@@ -139,44 +143,57 @@ app.post('/thoughts/:id/like', async (req, res) => {
 
 });
 
-app.post('/thoughts', async (req, res) => {
+app.post('/thoughts', auth, async (req, res) => {
   const { message } = req.body;
-  const userId = req.header('x-user-id');  // temporary auth
-  console.log('Headers received:', req.headers); //fo test
 
   try {
-    if (!userId) {
-      return res.status(401).json({ error: 'Missing X-User-Id header' })
-    }
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid user' });
-    }
-
-
     const newThought = await new Thought({
       message,
-      createdBy: user._id,
+      createdBy: req.userId
     }).save();
-
-    // (Optional) populate the user info
-    // await newThought.populate('createdBy', 'email username');
 
     res.status(201).json(newThought);
   } catch (err) {
-    // Check for validation error
     if (err.name === 'ValidationError') {
-      return res.status(400).json({
-        error: 'Validation failed',
-        details: err.message
-      });
+      return res.status(400).json({ error: 'Validation failed', details: err.message });
+    }
+    res.status(500).json({ error: 'Could not save thought', details: err.message });
+  }
+});
+
+app.patch('/thoughts/:id', auth, async (req, res) => {
+  const { message } = req.body;
+  if (typeof message !== 'string' || message.length < 5 || message.length > 140) {
+    return res.status(400).json({ error: 'Message must be 5–140 chars' });
+  }
+
+  try {
+    const t = await Thought.findById(req.params.id);
+    if (!t) return res.status(404).json({ error: 'Thought not found' });
+    if (String(t.createdBy) !== req.userId) {
+      return res.status(403).json({ error: 'Not your thought' });
     }
 
-    res.status(500).json({
-      error: 'Could not save thought',
-      details: err.message
-    });
+    t.message = message;
+    await t.save();
+    res.json(t);
+  } catch (err) {
+    res.status(400).json({ error: 'Invalid ID', details: err.message });
+  }
+});
+
+app.delete('/thoughts/:id', auth, async (req, res) => {
+  try {
+    const t = await Thought.findById(req.params.id);
+    if (!t) return res.status(404).json({ error: 'Thought not found' });
+    if (String(t.createdBy) !== req.userId) {
+      return res.status(403).json({ error: 'Not your thought' });
+    }
+
+    await t.deleteOne();
+    res.json({ success: true, message: 'Thought deleted' });
+  } catch (err) {
+    res.status(400).json({ error: 'Invalid ID', details: err.message });
   }
 });
 
@@ -211,13 +228,21 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // 3. Login successful
+    // after password check passes
+    const accessToken = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
     res.json({
       success: true,
       message: 'Login successful',
       userId: user._id,
-      email: user.email
+      email: user.email,
+      accessToken
     });
+
 
   } catch (err) {
     res.status(500).json({ error: 'Server error', details: err.message });
