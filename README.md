@@ -9,3 +9,27 @@ Install dependencies with `npm install`, then start the server by running `npm r
 ## View it live
 
 Every project should be deployed somewhere. Be sure to include the link to the deployed project so that the viewer can click around and see what it's all about.
+
+# Happy Thoughts API
+
+## Run locally
+npm install
+node server.js
+# .env required:
+MONGO_URL=...
+JWT_SECRET=...
+
+## Endpoints
+GET    /                     -> API docs
+GET    /thoughts             -> list latest 20
+GET    /thoughts/:id         -> single thought
+POST   /thoughts/:id/like    -> like
+POST   /signup               -> create user
+POST   /login                -> login (returns accessToken)
+POST   /thoughts             -> create (JWT required)
+PATCH  /thoughts/:id         -> update (JWT + author-only)
+DELETE /thoughts/:id         -> delete (JWT + author-only)
+
+## Deploy
+Deployed on Render:
+https://js-project-api-862g.onrender.com/
