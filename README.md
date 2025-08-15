@@ -16,7 +16,8 @@ Every project should be deployed somewhere. Be sure to include the link to the d
 npm install
 node server.js
 # .env required:
-MONGO_URL=...
+MONGO_URL=mongodb+srv://varvaraslugina:1zqKjsfqPiWDBjkU@cluster0.cttoete.mongodb.net/test?retryWrites=true&w=majority&appName=Cluster0
+
 JWT_SECRET=...
 
 ## Endpoints
