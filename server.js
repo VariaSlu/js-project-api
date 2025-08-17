@@ -32,7 +32,7 @@ mongoose
     console.error('Mongo error', err);
   });
 
-// Optional: seed one thought if DB is empty
+// seed one thought if DB is empty (optional)
 const seed = async () => {
   const existing = await Thought.find();
   if (existing.length === 0) {
@@ -120,7 +120,6 @@ app.post('/thoughts/:id/like', async (req, res) => {
   const { id } = req.params;
 
   try {
-    console.log('ID received:', id); //for debugginng
 
     const updatedThought = await Thought.findByIdAndUpdate(
       id,
