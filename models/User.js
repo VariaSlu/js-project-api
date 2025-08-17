@@ -29,7 +29,7 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
-// Method to compare passwords later
+// to compare passwords later
 userSchema.methods.comparePassword = function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
